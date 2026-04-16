@@ -1,11 +1,35 @@
-
 # secrets
 .env
 *.env
 .env.*
 
-# letsencrypt / certbot (do not commit)
+# letsencrypt / certbot
 deploy/certbot/
 
-# editor / temp
+# dependencies
+node_modules/
+
+# builds
+dist/
+.next/
+coverage/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# temp
 *.save
+
+# local runtime data
+backend/wa_auth/
+backend/.nestjs-cli.json
+frontend/.swc/
