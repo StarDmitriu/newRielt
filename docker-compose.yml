@@ -76,6 +76,9 @@ services:
       #SUPABASE_URL: ${SUPABASE_URL}
       #SUPABASE_KEY: ${SUPABASE_KEY}
       #JWT_SECRET: ${JWT_SECRET}
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     volumes:
       - ./backend/wa_auth:/app/wa_auth
       - ./backend/storage:/app/storage

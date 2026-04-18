@@ -265,6 +265,7 @@ export class TelegramService implements OnModuleDestroy {
     const client = new TelegramClient(session, this.apiId(), this.apiHash(), {
       connectionRetries: 5,
       retryDelay: 1000,
+      useWSS: true,
     });
 
     await client.connect();
@@ -329,6 +330,7 @@ export class TelegramService implements OnModuleDestroy {
       const session = new StringSession('');
       const client = new TelegramClient(session, this.apiId(), this.apiHash(), {
         connectionRetries: 2,
+        useWSS: true,
       });
 
       await client.connect();

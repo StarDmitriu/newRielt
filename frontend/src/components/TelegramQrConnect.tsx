@@ -16,6 +16,20 @@ type QrStatusResp = {
 	qr?: string | null
 	expiresAt?: number | null
 	lastError?: string | null
+	message?: string | null
+}
+
+function humanizeTelegramError(raw?: string | null) {
+	if (!raw) return 'Не удалось подключить Telegram'
+	if (raw.includes('TG_API_ID is not set')) return 'На backend не задан TG_API_ID'
+	if (raw.includes('TG_API_HASH is not set')) return 'На backend не задан TG_API_HASH'
+	if (raw.includes('ETIMEDOUT')) {
+		return 'Backend не может подключиться к Telegram. Проверьте исходящие соединения сервера и порт 443.'
+	}
+	if (raw.includes('ECONNREFUSED')) {
+		return 'Сервер отклонил подключение к Telegram. Проверьте исходящие соединения backend.'
+	}
+	return raw
 }
 
 export function TelegramQrConnect({ userId }: { userId: string }) {
@@ -51,7 +65,12 @@ export function TelegramQrConnect({ userId }: { userId: string }) {
 		})
 		const data: QrStatusResp = await res.json()
 
-		if (!data?.success) return
+		if (!res.ok || !data?.success) {
+			setErrorText(humanizeTelegramError(data?.message ?? null))
+			setLoading(false)
+			stopPolling()
+			return
+		}
 
 		setStatus(data.status)
 		setQr(data.qr ?? null)
@@ -75,6 +94,11 @@ export function TelegramQrConnect({ userId }: { userId: string }) {
 			setLoading(false)
 		}
 
+		if (data.status === 'not_connected') {
+			stopPolling()
+			setLoading(false)
+		}
+
 		// если мы показываем QR — тоже снимаем loading
 		if (data.status === 'pending_qr' && data.qr) {
 			setLoading(false)
@@ -93,15 +117,27 @@ export function TelegramQrConnect({ userId }: { userId: string }) {
 		setPassword('')
 
 		try {
-			await fetch(`${backendUrl}/telegram/qr/start`, {
+			const res = await fetch(`${backendUrl}/telegram/qr/start`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({ userId }),
 			})
+			const data: QrStatusResp = await res.json().catch(() => ({
+				success: false,
+				status: 'error',
+				message: 'Не удалось запустить QR-подключение Telegram',
+			}))
+			if (!res.ok || !data?.success) {
+				setErrorText(humanizeTelegramError(data?.message ?? data?.lastError ?? null))
+				setLoading(false)
+				stopPolling()
+				return
+			}
 		} catch {
 			setErrorText('Не удалось запустить QR-подключение Telegram')
 			setLoading(false)
-			return;		}
+			return
+		}
 
 		await loadStatus().catch(() => {})
 		startPolling()

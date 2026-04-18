@@ -72,6 +72,7 @@ export class TelegramQrService implements OnModuleDestroy {
       {
         connectionRetries: 3,
         retryDelay: 1000,
+        useWSS: true,
       } as any,
     );
   }
