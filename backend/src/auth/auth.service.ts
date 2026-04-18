@@ -301,6 +301,15 @@ export class AuthService {
       return this.safeFail('sms_send_failed');
     }
 
+    if ((smsResult as any)?.dev) {
+      return {
+        success: true,
+        dev: true,
+        dev_code: code,
+        message: 'dev_sms_bypass',
+      };
+    }
+
     return { success: true };
   }
 

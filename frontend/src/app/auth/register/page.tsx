@@ -61,6 +61,10 @@ function RegisterInner() {
 				})
 				return;			}
 
+			if (typeof window !== 'undefined' && data?.dev_code) {
+				sessionStorage.setItem('devOtpCode', String(data.dev_code))
+			}
+
 			// 2) сохраняем профиль (его подхватит verify-code в /auth/code)
 			const profile = {
 				full_name: fullName.trim(),

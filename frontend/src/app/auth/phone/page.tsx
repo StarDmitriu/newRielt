@@ -38,6 +38,10 @@ export default function LoginPage() {
 				notify(data?.message || 'Ошибка при отправке кода', { type: 'error', title: 'Ошибка' })
 				return;			}
 
+			if (typeof window !== 'undefined' && data?.dev_code) {
+				sessionStorage.setItem('devOtpCode', String(data.dev_code))
+			}
+
 			router.push(
 				`/auth/code?phone=${encodeURIComponent(phone.trim())}&mode=login`
 			)

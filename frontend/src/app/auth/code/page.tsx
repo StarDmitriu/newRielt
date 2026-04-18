@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 import './page.css'
@@ -28,6 +28,18 @@ function CodeInner() {
 	const [loading, setLoading] = useState(false)
 	const [resendLoading, setResendLoading] = useState(false)
 	const notify = useNotify()
+
+	useEffect(() => {
+		if (typeof window === 'undefined') return
+		const devCode = sessionStorage.getItem('devOtpCode')
+		if (!devCode) return
+
+		setCode(devCode)
+		notify(`Тестовый код: ${devCode}`, {
+			type: 'success',
+			title: 'DEV режим',
+		})
+	}, [notify])
 
 	const verify = async () => {
 		if (!code.trim()) {
@@ -81,8 +93,13 @@ function CodeInner() {
 				sessionStorage.removeItem('registerProfile')
 			}
 
+			if (typeof window !== 'undefined') {
+				sessionStorage.removeItem('devOtpCode')
+			}
+
 			Cookies.set('token', data.token, { expires: 30 })
 			router.push('/cabinet')
+
 		} catch (err) {
 			console.error(err)
 			notify('Ошибка сети, попробуйте ещё раз', {
