@@ -7,7 +7,6 @@ import { Api } from 'telegram';
 import { Raw } from 'telegram/events';
 import { computeCheck } from 'telegram/Password';
 import { Buffer } from 'buffer';
-import { getTelegramProxy, shouldUseTelegramWss } from '../network/channel-proxy';
 
 export type TgQrStatus =
   | 'not_connected'
@@ -66,10 +65,6 @@ export class TelegramQrService implements OnModuleDestroy {
   }
 
   private newClient(sessionStr = '') {
-    const proxy = getTelegramProxy();
-    if (proxy) {
-      this.logger.warn(`Telegram QR proxy enabled: ${proxy.ip}:${proxy.port}`);
-    }
     return new TelegramClient(
       new StringSession(sessionStr),
       this.apiId(),
@@ -77,8 +72,7 @@ export class TelegramQrService implements OnModuleDestroy {
       {
         connectionRetries: 3,
         retryDelay: 1000,
-        useWSS: shouldUseTelegramWss(),
-        proxy,
+        useWSS: true,
       } as any,
     );
   }

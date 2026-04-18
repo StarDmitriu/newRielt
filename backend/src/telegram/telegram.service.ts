@@ -6,7 +6,6 @@ import { StringSession } from 'telegram/sessions';
 import { Api } from 'telegram';
 import { Buffer } from 'buffer';
 import bigInt from 'big-integer';
-import { getTelegramProxy, shouldUseTelegramWss } from '../network/channel-proxy';
 
 type TgStatus =
   | 'not_connected'
@@ -149,22 +148,6 @@ export class TelegramService implements OnModuleDestroy {
 
   constructor(private readonly supabaseService: SupabaseService) {}
 
-  private createTelegramClient(
-    session: StringSession,
-    connectionRetries: number,
-  ) {
-    const proxy = getTelegramProxy();
-    if (proxy) {
-      this.logger.warn(`Telegram proxy enabled: ${proxy.ip}:${proxy.port}`);
-    }
-    return new TelegramClient(session, this.apiId(), this.apiHash(), {
-      connectionRetries,
-      retryDelay: 1000,
-      useWSS: shouldUseTelegramWss(),
-      proxy,
-    });
-  }
-
   private async withLock<T>(key: string, fn: () => Promise<T>): Promise<T> {
     const prev = this.locks.get(key) ?? Promise.resolve();
 
@@ -279,7 +262,11 @@ export class TelegramService implements OnModuleDestroy {
     if (this.sessions.has(userId)) return;
 
     const session = new StringSession(sessionStr);
-    const client = this.createTelegramClient(session, 5);
+    const client = new TelegramClient(session, this.apiId(), this.apiHash(), {
+      connectionRetries: 5,
+      retryDelay: 1000,
+      useWSS: true,
+    });
 
     await client.connect();
     const me = await client.getMe().catch(() => null);
@@ -341,7 +328,10 @@ export class TelegramService implements OnModuleDestroy {
       }
 
       const session = new StringSession('');
-      const client = this.createTelegramClient(session, 2);
+      const client = new TelegramClient(session, this.apiId(), this.apiHash(), {
+        connectionRetries: 2,
+        useWSS: true,
+      });
 
       await client.connect();
 

@@ -48,6 +48,8 @@ function quietLog(msg: string, key: string) {
 
 export async function register() {
 	if (process.env.NEXT_RUNTIME !== 'nodejs') return
+	const nodeProcess = (globalThis as typeof globalThis & { process?: NodeJS.Process }).process
+	if (!nodeProcess?.on) return
 
 	// Подавляем дублирующий вывод Next.js по известным ошибкам
 	const origConsoleError = console.error
@@ -71,7 +73,7 @@ export async function register() {
 		origConsoleError.apply(console, args)
 	}
 
-	process.on('uncaughtException', (err: unknown) => {
+	nodeProcess.on('uncaughtException', (err: unknown) => {
 		if (isNextRedirect(err)) return
 		if (isReturnNaNRef(err)) {
 			quietLog('ReferenceError returnNaN (suppressed)', 'returnNaN')
@@ -89,7 +91,7 @@ export async function register() {
 		origConsoleError('[uncaughtException]', (err as Error)?.message ?? err)
 	})
 
-	process.on('unhandledRejection', (reason: unknown) => {
+	nodeProcess.on('unhandledRejection', (reason: unknown) => {
 		if (reason && typeof reason === 'object' && (reason as Error).message === 'NEXT_REDIRECT') return
 		if (reason && typeof reason === 'object' && isNetworkError(reason)) {
 			const e = reason as NodeJS.ErrnoException & { address?: string; port?: number }
