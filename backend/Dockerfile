@@ -1,5 +1,6 @@
 # ---------- build stage ----------
-FROM node:20-alpine AS builder
+ARG NODE_IMAGE=node:20-alpine
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 
 COPY package*.json ./
@@ -9,7 +10,7 @@ COPY . .
 RUN npm run build
 
 # ---------- runtime stage ----------
-FROM node:20-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

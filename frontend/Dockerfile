@@ -1,12 +1,13 @@
 # ---------- deps ----------
-FROM node:20-alpine AS deps
+ARG NODE_IMAGE=node:20-alpine
+FROM ${NODE_IMAGE} AS deps
 WORKDIR /app
 
 COPY package*.json ./
 RUN npm ci
 
 # ---------- build ----------
-FROM node:20-alpine AS builder
+FROM ${NODE_IMAGE} AS builder
 WORKDIR /app
 
 ARG NEXT_PUBLIC_BACKEND_URL
@@ -19,7 +20,7 @@ RUN npm run build
 
 # ---------- run ----------
 # standalone: Next собирает один каталог с сервером и минимальным node_modules — без второго npm ci
-FROM node:20-alpine AS runner
+FROM ${NODE_IMAGE} AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -31,5 +32,4 @@ COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3001
 CMD ["node", "server.js"]
-
 
