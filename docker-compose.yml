@@ -47,9 +47,13 @@ services:
     container_name: chatrassylka_backend
     env_file:
       - ./backend/.env
+      - ./.env.postgres
     environment:
       NODE_ENV: production
       PORT: 3000
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      BACKEND_PUBLIC_URL: https://chatrassylka.ru/api
 
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -72,6 +76,9 @@ services:
       #SUPABASE_URL: ${SUPABASE_URL}
       #SUPABASE_KEY: ${SUPABASE_KEY}
       #JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - ./backend/wa_auth:/app/wa_auth
+      - ./backend/storage:/app/storage
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1"]
       interval: 10s

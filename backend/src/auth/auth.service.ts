@@ -1,10 +1,10 @@
 //backend/src/auth/auth.service.ts
 import { Injectable } from '@nestjs/common';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as jwt from 'jsonwebtoken';
 import { SmsService } from '../sms/sms.service';
 import { requireEnv } from '../config/env';
 import { randomBytes } from 'crypto';
+import { SupabaseService } from '../supabase/supabase.service';
 
 
 type ProfileUpdate = {
@@ -27,8 +27,6 @@ type OtpRow = {
 
 @Injectable()
 export class AuthService {
-  private supabase: SupabaseClient;
-
   // можно переопределить через env при желании
   private readonly OTP_TTL_MIN = Number(process.env.OTP_TTL_MINUTES || 5); // 5 минут
   private readonly OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS || 5); // 5 попыток
@@ -36,12 +34,10 @@ export class AuthService {
     process.env.OTP_RESEND_COOLDOWN_SEC || 60,
   ); // 60 секунд
 
-  constructor(private readonly smsService: SmsService) {
-    this.supabase = createClient(
-      requireEnv('SUPABASE_URL'),
-      requireEnv('SUPABASE_KEY'),
-    );
-  }
+  constructor(
+    private readonly smsService: SmsService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
 
   // -------------------------
   // helpers
@@ -95,7 +91,7 @@ export class AuthService {
   // ---------- users ----------
 
   private async findUserByPhone(phone: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('users')
       .select('*')
       .eq('phone', phone)
@@ -112,7 +108,7 @@ export class AuthService {
   private async createUser(phone: string) {
     const referral_code = await this.ensureUniqueReferralCode();
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('users')
       .insert({
         phone,
@@ -131,7 +127,7 @@ export class AuthService {
   }
 
   private async updateLastLogin(phone: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('users')
       .update({
         last_login: this.nowIso(),
@@ -150,7 +146,7 @@ export class AuthService {
   }
 
   async getUserById(id: string) {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('users')
       .select('*')
       .eq('id', id)
@@ -177,7 +173,7 @@ export class AuthService {
       return await this.getUserById(userId);
     }
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('users')
       .update({
         full_name,
@@ -211,7 +207,7 @@ export class AuthService {
     for (let i = 0; i < 10; i++) {
       const code = this.generateReferralCode();
 
-      const { data, error } = await this.supabase
+      const { data, error } = await this.supabaseService.getClient()
         .from('users')
         .select('id')
         .eq('referral_code', code)
@@ -233,7 +229,7 @@ export class AuthService {
     const ref = String(code || '').trim();
     if (!ref) return null;
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('users')
       .select('id,referral_code')
       .eq('referral_code', ref)
@@ -254,7 +250,7 @@ export class AuthService {
     if (!normPhone) return this.safeFail('phone is required');
 
     // 1) анти-спам: смотрим last_sent_at
-    const { data: existing, error: exErr } = await this.supabase
+    const { data: existing, error: exErr } = await this.supabaseService.getClient()
       .from('otp_codes')
       .select('phone, last_sent_at')
       .eq('phone', normPhone)
@@ -278,7 +274,7 @@ export class AuthService {
     const now = this.nowIso();
 
     // 3) сохраняем код с TTL и attempts=0
-    const { error: upErr } = await this.supabase.from('otp_codes').upsert(
+    const { error: upErr } = await this.supabaseService.getClient().from('otp_codes').upsert(
       {
         phone: normPhone,
         code,
@@ -318,7 +314,7 @@ export class AuthService {
       return this.safeFail('phone and code are required');
     }
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('otp_codes')
       .select('phone, code, expires_at, attempts')
       .eq('phone', normPhone)
@@ -350,7 +346,7 @@ export class AuthService {
     }
 
     if (String(row.code || '').trim() !== normCode) {
-      await this.supabase
+      await this.supabaseService.getClient()
         .from('otp_codes')
         .update({ attempts: attempts + 1, updated_at: this.nowIso() })
         .eq('phone', normPhone);
@@ -359,7 +355,7 @@ export class AuthService {
     }
 
     // ✅ успех — удаляем OTP сразу
-    await this.supabase.from('otp_codes').delete().eq('phone', normPhone);
+    await this.supabaseService.getClient().from('otp_codes').delete().eq('phone', normPhone);
 
     // --- логика логина/регистрации ---
     let user = await this.findUserByPhone(normPhone);
@@ -397,7 +393,7 @@ export class AuthService {
           // привязываем только если ещё не привязан
           if (!user.referred_by_user_id) {
             // 1) обновляем user.referred_by_user_id
-            const { data: updatedUser, error: upErr } = await this.supabase
+            const { data: updatedUser, error: upErr } = await this.supabaseService.getClient()
               .from('users')
               .update({ referred_by_user_id: referrer.id })
               .eq('id', user.id)
@@ -411,7 +407,7 @@ export class AuthService {
             }
 
             // 2) записываем referrals (если дубль — таблица сама не даст)
-            const { error: refErr } = await this.supabase
+            const { error: refErr } = await this.supabaseService.getClient()
               .from('referrals')
               .insert({
                 referrer_user_id: referrer.id,

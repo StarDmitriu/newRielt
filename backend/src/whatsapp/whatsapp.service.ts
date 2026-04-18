@@ -10,9 +10,9 @@ import { Boom } from '@hapi/boom';
 import * as path from 'path';
 import * as fs from 'fs';
 import pino from 'pino';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
 // ... твои импорты
 import { Buffer } from 'buffer';
+import { SupabaseService } from '../supabase/supabase.service';
 
 function isProbablyVideo(contentType: string, url: string) {
   const ct = (contentType || '').toLowerCase();
@@ -100,14 +100,7 @@ export class WhatsappService {
 
   private sessions = new Map<string, InternalSession>();
 
-  private supabase: SupabaseClient;
-
-  constructor() {
-    this.supabase = createClient(
-      process.env.SUPABASE_URL as string,
-      process.env.SUPABASE_KEY as string,
-    );
-  }
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   private getAuthDir(userId: string) {
     return path.join(process.cwd(), 'wa_auth', userId);
@@ -176,7 +169,7 @@ export class WhatsappService {
       };
     }
 
-    const { data: existingTimes, error: timeErr } = await this.supabase
+    const { data: existingTimes, error: timeErr } = await this.supabaseService.getClient()
       .from('whatsapp_groups')
       .select('wa_group_id, send_time')
       .eq('user_id', userId);
@@ -218,7 +211,7 @@ export class WhatsappService {
       is_selected: true,
     }));
 
-    const { error } = await this.supabase
+    const { error } = await this.supabaseService.getClient()
       .from('whatsapp_groups')
       .upsert(rows, { onConflict: 'user_id,wa_group_id' });
 
@@ -232,7 +225,7 @@ export class WhatsappService {
 
   async getGroupsFromDb(userId: string) {
     // ✅ добавили is_selected
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('whatsapp_groups')
       .select(
         'wa_group_id, subject, participants_count, is_announcement, is_restricted, updated_at, is_selected, send_time',
@@ -256,7 +249,7 @@ export class WhatsappService {
   }) {
     const { userId, waGroupId, isSelected } = params;
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('whatsapp_groups')
       .update({
         is_selected: isSelected,
@@ -287,7 +280,7 @@ export class WhatsappService {
     const { userId, waGroupId, sendTime } = params;
     const normalized = normalizeSendInterval(sendTime);
 
-    const { data, error } = await this.supabase
+    const { data, error } = await this.supabaseService.getClient()
       .from('whatsapp_groups')
       .update({
         send_time: normalized,

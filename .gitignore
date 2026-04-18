@@ -2,6 +2,7 @@
 .env
 *.env
 .env.*
+!.env.postgres.example
 
 # letsencrypt / certbot
 deploy/certbot/
@@ -31,5 +32,6 @@ Thumbs.db
 
 # local runtime data
 backend/wa_auth/
+backend/storage/
 backend/.nestjs-cli.json
 frontend/.swc/
