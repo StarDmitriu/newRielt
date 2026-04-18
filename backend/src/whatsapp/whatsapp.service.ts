@@ -13,6 +13,11 @@ import pino from 'pino';
 // ... твои импорты
 import { Buffer } from 'buffer';
 import { SupabaseService } from '../supabase/supabase.service';
+import {
+  getWhatsappConnectTimeoutMs,
+  getWhatsappKeepAliveIntervalMs,
+  getWhatsappProxyAgent,
+} from '../network/channel-proxy';
 
 function isProbablyVideo(contentType: string, url: string) {
   const ct = (contentType || '').toLowerCase();
@@ -410,16 +415,24 @@ export class WhatsappService {
 
     const { state, saveCreds } = await useMultiFileAuthState(authDir);
     const { version } = await fetchLatestBaileysVersion();
+    const proxyAgent = getWhatsappProxyAgent();
+    const connectTimeoutMs = getWhatsappConnectTimeoutMs();
+    const keepAliveIntervalMs = getWhatsappKeepAliveIntervalMs();
+    if (proxyAgent) {
+      this.logger.warn(`WhatsApp proxy enabled for ${userId}`);
+    }
 
     const sock = makeWASocket({
       version,
       auth: state,
       logger: pino({ level: 'silent' }),
       printQRInTerminal: false,
-      connectTimeoutMs: 20_000,
-      keepAliveIntervalMs: 20_000,
+      connectTimeoutMs,
+      keepAliveIntervalMs,
       syncFullHistory: false,
       markOnlineOnConnect: false,
+      agent: proxyAgent,
+      fetchAgent: proxyAgent,
     });
 
     s.sock = sock;
