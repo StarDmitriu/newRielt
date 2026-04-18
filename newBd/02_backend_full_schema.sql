@@ -73,6 +73,32 @@ CREATE TABLE IF NOT EXISTS public.users (
         FOREIGN KEY (referred_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL
 );
 
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT false;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_blocked boolean NOT NULL DEFAULT false;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_admin boolean NOT NULL DEFAULT false;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS referral_code text;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS referred_by_user_id uuid;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS timezone text DEFAULT 'Europe/Moscow';
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS gsheet_url text;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS tg_session text;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'users_referred_by_fkey'
+          AND conrelid = 'public.users'::regclass
+    ) THEN
+        ALTER TABLE public.users
+            ADD CONSTRAINT users_referred_by_fkey
+            FOREIGN KEY (referred_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_users_created_at ON public.users(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_users_referral_code ON public.users(referral_code);
 CREATE INDEX IF NOT EXISTS idx_users_is_admin ON public.users(is_admin);
@@ -87,6 +113,11 @@ CREATE TABLE IF NOT EXISTS public.otp_codes (
     last_sent_at timestamptz,
     updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE public.otp_codes ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+ALTER TABLE public.otp_codes ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0;
+ALTER TABLE public.otp_codes ADD COLUMN IF NOT EXISTS last_sent_at timestamptz;
+ALTER TABLE public.otp_codes ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
 CREATE INDEX IF NOT EXISTS idx_otp_codes_expires_at ON public.otp_codes(expires_at);
 
