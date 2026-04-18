@@ -159,6 +159,11 @@ export class WhatsappService {
     return s.info;
   }
 
+  async restartSession(userId: string): Promise<SessionInfo> {
+    this.resetSession(userId);
+    return this.startSession(userId);
+  }
+
   async syncGroups(userId: string) {
     const s = this.ensureSession(userId);
 

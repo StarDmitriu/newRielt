@@ -94,7 +94,7 @@ export function WhatsappConnectBlock({ userId }: { userId: string }) {
 			const res = await fetch(`${backendUrl}/whatsapp/start`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ userId }),
+				body: JSON.stringify({ userId, reset: true }),
 			})
 
 			const data = await res.json().catch(() => ({}))

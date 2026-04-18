@@ -9,12 +9,15 @@ export class WhatsappController {
   @Post('start')
   async start(
     @Body('userId') userId: string,
+    @Body('reset') reset?: boolean,
   ): Promise<
     { success: false; message: string } | { success: true; status: SessionInfo }
   > {
     if (!userId) return { success: false, message: 'userId is required' };
 
-    const status = await this.whatsapp.startSession(userId);
+    const status = reset
+      ? await this.whatsapp.restartSession(userId)
+      : await this.whatsapp.startSession(userId);
     return { success: true, status };
   }
 

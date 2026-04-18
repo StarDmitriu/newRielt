@@ -4,6 +4,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions';
 import { Api } from 'telegram';
+import { ConnectionTCPObfuscated } from 'telegram/network';
 import { Buffer } from 'buffer';
 import bigInt from 'big-integer';
 
@@ -265,6 +266,7 @@ export class TelegramService implements OnModuleDestroy {
     const client = new TelegramClient(session, this.apiId(), this.apiHash(), {
       connectionRetries: 5,
       retryDelay: 1000,
+      connection: ConnectionTCPObfuscated,
       useWSS: true,
     });
 
@@ -330,6 +332,7 @@ export class TelegramService implements OnModuleDestroy {
       const session = new StringSession('');
       const client = new TelegramClient(session, this.apiId(), this.apiHash(), {
         connectionRetries: 2,
+        connection: ConnectionTCPObfuscated,
         useWSS: true,
       });
 

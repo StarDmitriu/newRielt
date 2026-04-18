@@ -6,6 +6,7 @@ import { StringSession } from 'telegram/sessions';
 import { Api } from 'telegram';
 import { Raw } from 'telegram/events';
 import { computeCheck } from 'telegram/Password';
+import { ConnectionTCPObfuscated } from 'telegram/network';
 import { Buffer } from 'buffer';
 
 export type TgQrStatus =
@@ -72,6 +73,7 @@ export class TelegramQrService implements OnModuleDestroy {
       {
         connectionRetries: 3,
         retryDelay: 1000,
+        connection: ConnectionTCPObfuscated,
         useWSS: true,
       } as any,
     );
